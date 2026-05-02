@@ -24,7 +24,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 import type { VisitorLog } from '@/types/database'
 import { Toolbar } from './Toolbar'
-import { extractReferrerHost, formatKstDate, formatKstDay } from './utils'
+import { countryName, extractReferrerHost, formatKstDate, formatKstDay } from './utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -81,7 +81,10 @@ export default async function VisitorLogPage({ searchParams }: PageProps) {
         color: '#FAFAFA',
       }}
     >
-      <div className="mx-auto max-w-6xl px-5 sm:px-8 py-10 sm:py-14">
+      <div
+        className="mx-auto px-5 sm:px-8 py-10 sm:py-14"
+        style={{ maxWidth: 'min(1440px, 100%)' }}
+      >
 
         {/* Header */}
         <header
@@ -173,7 +176,7 @@ export default async function VisitorLogPage({ searchParams }: PageProps) {
             <table className="w-full text-sm" style={{ borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ color: '#71717A' }}>
-                  {['시각 (KST)', 'IP', '국가', '도시', '기기', 'OS', '브라우저', '업체', '경로', '유입'].map(h => (
+                  {['시각 (KST)', 'IP', '국가', '도시', '업체', '경로', '유입', '기기', 'OS', '브라우저'].map(h => (
                     <th
                       key={h}
                       className="text-left font-medium text-xs px-4 py-3 whitespace-nowrap"
@@ -197,14 +200,14 @@ export default async function VisitorLogPage({ searchParams }: PageProps) {
                       {log.visited_at ? formatKstDate(new Date(log.visited_at)) : '-'}
                     </Td>
                     <Td color="#D4D4D8" mono>{log.ip ?? '-'}</Td>
-                    <Td color="#FAFAFA">{log.country ?? '-'}</Td>
+                    <Td color="#FAFAFA">{countryName(log.country) ?? '-'}</Td>
                     <Td color="#D4D4D8">{log.city ?? '-'}</Td>
-                    <Td color="#D4D4D8">{log.device_type ?? '-'}</Td>
-                    <Td color="#D4D4D8">{log.os ?? '-'}</Td>
-                    <Td color="#D4D4D8">{log.browser ?? '-'}</Td>
                     <Td color="#A5B4FC" mono>{log.slug ?? '—'}</Td>
                     <Td color="#A1A1AA" mono>{log.path ?? '-'}</Td>
                     <Td color="#A1A1AA" mono>{extractReferrerHost(log.referrer) ?? '직접'}</Td>
+                    <Td color="#D4D4D8">{log.device_type ?? '-'}</Td>
+                    <Td color="#D4D4D8">{log.os ?? '-'}</Td>
+                    <Td color="#D4D4D8">{log.browser ?? '-'}</Td>
                   </tr>
                 ))}
               </tbody>

@@ -17,7 +17,7 @@
 import { useState, useTransition } from 'react'
 import type { VisitorLog } from '@/types/database'
 import { deleteAllVisitorLogs } from './actions'
-import { extractReferrerHost, formatKstDate, formatKstDay } from './utils'
+import { countryName, extractReferrerHost, formatKstDate, formatKstDay } from './utils'
 
 interface ToolbarProps {
   logs: VisitorLog[]
@@ -125,18 +125,18 @@ export function Toolbar({ logs, secret }: ToolbarProps) {
 }
 
 function generateCsv(logs: VisitorLog[]): string {
-  const headers = ['시각(KST)', 'IP', '국가', '도시', '기기', 'OS', '브라우저', '업체', '경로', '유입']
+  const headers = ['시각(KST)', 'IP', '국가', '도시', '업체', '경로', '유입', '기기', 'OS', '브라우저']
   const rows = logs.map(log => [
     log.visited_at ? formatKstDate(new Date(log.visited_at)) : '',
     log.ip ?? '',
-    log.country ?? '',
+    countryName(log.country) ?? '',
     log.city ?? '',
-    log.device_type ?? '',
-    log.os ?? '',
-    log.browser ?? '',
     log.slug ?? '',
     log.path ?? '',
     extractReferrerHost(log.referrer) ?? '',
+    log.device_type ?? '',
+    log.os ?? '',
+    log.browser ?? '',
   ])
   return [headers, ...rows].map(row => row.map(escapeCsv).join(',')).join('\r\n')
 }

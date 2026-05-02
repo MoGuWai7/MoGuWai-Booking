@@ -21,15 +21,19 @@ import { updateSession } from '@/lib/supabase/middleware'
 
 export async function proxy(request: NextRequest, event?: NextFetchEvent) {
   const { pathname } = request.nextUrl
+  const ua = request.headers.get('user-agent') ?? ''
 
   // 방문자 로그 수집 대상 판별.
   // matcher 자체에서도 visitor-log/static을 제외하지만, 라우트 변동에 대비해 프록시 함수 안에서도 한 번 더 가드합니다.
+  // UA 기반 봇/스크린샷 필터: Vercel Dashboard preview iframe·각종 모니터링·검색엔진 크롤러를 통계에서 제외.
+  // 차단이 아니라 "기록 제외"일 뿐이므로, 실제 응답은 일반 방문과 동일하게 정상 반환됩니다.
   const shouldLog =
     !pathname.startsWith('/_next') &&
     !pathname.startsWith('/api') &&
     !pathname.startsWith('/visitor-log') &&
     !pathname.startsWith('/favicon') &&
-    !pathname.includes('.')
+    !pathname.includes('.') &&
+    !isBotLikeUA(ua)
 
   if (shouldLog) {
     // fire-and-forget — 응답을 지연시키지 않음.
@@ -40,6 +44,21 @@ export async function proxy(request: NextRequest, event?: NextFetchEvent) {
 
   // 기존 인증 가드: Supabase 세션 갱신 + 보호 경로 차단.
   return await updateSession(request)
+}
+
+/**
+ * 봇·스크린샷·헤드리스·모니터링 UA 인지 판별합니다.
+ * 매칭되면 방문자 로그에서 "기록 제외"하며, 실제 응답은 막지 않습니다 (Forbidden 반환 X).
+ *
+ * 잡는 대상:
+ * - Vercel Dashboard 의 deployment preview screenshot 요청 (HeadlessChrome / vercel-screenshot)
+ * - Googlebot / Bingbot / Yeti(네이버) / DuckDuckBot 등 검색엔진 크롤러
+ * - UptimeRobot / Pingdom / StatusCake 등 모니터링
+ * - 명백한 자동화/스크래핑 (curl, wget, python-requests, axios, node-fetch, Go-http-client, java/HttpClient, Postman)
+ */
+function isBotLikeUA(ua: string): boolean {
+  if (!ua) return true // UA 자체가 비어있으면 자동화 트래픽으로 간주
+  return /bot|crawler|spider|crawling|screenshot|preview|headlesschrome|vercel|monitor|uptime|pingdom|statuscake|lighthouse|pagespeed|chrome-lighthouse|curl\/|wget\/|python-requests|axios\/|node-fetch|go-http-client|java\/|httpclient|postman/i.test(ua)
 }
 
 /**

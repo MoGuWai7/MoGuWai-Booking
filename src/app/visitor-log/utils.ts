@@ -38,3 +38,42 @@ export function extractReferrerHost(url: string | null): string | null {
     return url
   }
 }
+
+/**
+ * ISO 3166-1 alpha-2 국가 코드 → 사람이 읽기 쉬운 영문 국가명.
+ * - 빈 값/null → null (UI 에서 '-' 로 표기)
+ * - Intl.DisplayNames 가 인식 못 하면 입력 코드 원문을 그대로 반환 (안전한 폴백)
+ *
+ * 예:
+ *   countryName('KR') → 'South Korea'
+ *   countryName('US') → 'United States'
+ *   countryName('XX') → 'XX' (폴백)
+ *   countryName(null) → null
+ */
+let cachedDisplayNames: Intl.DisplayNames | null | undefined
+function getDisplayNames(): Intl.DisplayNames | null {
+  if (cachedDisplayNames !== undefined) return cachedDisplayNames
+  try {
+    cachedDisplayNames = new Intl.DisplayNames(['en'], { type: 'region' })
+  } catch {
+    cachedDisplayNames = null
+  }
+  return cachedDisplayNames
+}
+
+export function countryName(code: string | null): string | null {
+  if (!code) return null
+  const trimmed = code.trim()
+  if (!trimmed) return null
+  const upper = trimmed.toUpperCase()
+  const dn = getDisplayNames()
+  if (!dn) return trimmed
+  try {
+    const name = dn.of(upper)
+    // Intl.DisplayNames 가 미인식 시 입력값을 그대로 돌려주기도 하므로 그 경우엔 폴백.
+    if (!name || name === upper) return trimmed
+    return name
+  } catch {
+    return trimmed
+  }
+}
